@@ -348,9 +348,9 @@ job_t *OCR_JOB;
 
 
 static VALUE image_recognize(VALUE self, VALUE arg) {
-  char* filename = "hello"; // RSTRING(arg)->ptr;
+  char* filename = StringValuePtr(arg);
   printf("Hello %s!\n", filename);
-  return Qnil;
+  return rb_str_new2( "string" );
 }
 
 
@@ -409,5 +409,5 @@ void Init_gocr() {
   VALUE mImage = rb_define_class_under(mGocr, "Image", rb_cObject);
   //VALUE mImage = rb_const_get(rb_cObject, rb_intern("Image"));
   // define class method GOCR::Image.recognize("filename.extension")
-  rb_define_method_function(mImage, "recognize", image_recognize, 1);
+  rb_define_singleton_method(mImage, "recognize", image_recognize, 1);
 }

@@ -29,13 +29,13 @@ s = Gem::Specification.new 'gocr', '0.5.0' do |s|
 
   # naturally you must include the extension source in the gem
 
-  #s.files = `git ls-files`.split($/)
-  s.files = %w[
-    Rakefile
-    ext/gocr/extconf.rb
-    ext/gocr/gocr.c
-    lib/hello.rb
-  ]
+  s.files = `git ls-files`.split($/)
+#  s.files = %w[
+#    Rakefile
+#    ext/gocr/extconf.rb
+#    ext/gocr/gocr.c
+#    lib/hello.rb
+#  ]
 end
 
 # The package task builds the gem in pkg/my_malloc-1.0.gem so you can test
@@ -46,7 +46,7 @@ Gem::PackageTask.new s do end
 # This isn't a good test, but does provide a sanity check
 
 task test: %w[compile] do
-  ruby '-Ilib', '-rgocr', '-e', 'p Hello.recognize("name")'
+  ruby '-Ilib', '-rgocr', '-e', 'p GOCR::Image.recognize("name")'
 #  ruby '-Ilib', '-rgocr', '-e', 'p 3'
 end
 
