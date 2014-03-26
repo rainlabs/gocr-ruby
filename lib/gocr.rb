@@ -1,5 +1,5 @@
 require "gocr/version"
 
-module Gocr
+module GOCR
   # Your code goes here...
 end
