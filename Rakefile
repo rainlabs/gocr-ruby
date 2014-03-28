@@ -9,7 +9,7 @@ require 'rubygems/package_task'
 #
 # See https://github.com/luislavena/rake-compiler for details
 
-Rake::ExtensionTask.new 'gocr' do |ext|
+Rake::ExtensionTask.new 'gocr-ruby' do |ext|
 
   # This causes the shared object to be placed in lib/my_malloc/my_malloc.so
   #
@@ -19,8 +19,8 @@ Rake::ExtensionTask.new 'gocr' do |ext|
   ext.lib_dir = 'lib/gocr'
 end
 
-s = Gem::Specification.new 'gocr', '0.5.0' do |s|
-  s.summary = 'my gocr wrapper'
+s = Gem::Specification.new 'gocr-ruby', '0.0.1' do |s|
+  s.summary = 'simple gocr wrapper'
   s.authors = %w[zyablitskiy@gmail.com]
 
   # this tells RubyGems to build an extension upon install
@@ -30,12 +30,6 @@ s = Gem::Specification.new 'gocr', '0.5.0' do |s|
   # naturally you must include the extension source in the gem
 
   s.files = `git ls-files`.split($/)
-#  s.files = %w[
-#    Rakefile
-#    ext/gocr/extconf.rb
-#    ext/gocr/gocr.c
-#    lib/hello.rb
-#  ]
 end
 
 # The package task builds the gem in pkg/my_malloc-1.0.gem so you can test
@@ -46,7 +40,7 @@ Gem::PackageTask.new s do end
 # This isn't a good test, but does provide a sanity check
 
 task test: %w[compile] do
-  ruby '-Ilib', '-rgocr', '-e', 'p GOCR::Image.recognize("name")'
+  ruby '-Ilib', '-rgocr', '-e', 'p GOCR::Image.recognize("image.png")'
 #  ruby '-Ilib', '-rgocr', '-e', 'p 3'
 end
 

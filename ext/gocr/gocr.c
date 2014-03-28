@@ -347,10 +347,46 @@ void print_output(job_t *job) {
 job_t *OCR_JOB;
 
 
+char* gocr_recognize(char* filename) {
+    char* line;
+    int multipnm=1;
+    job_t job1, *job; /* fixme, dont want global variables for lib */
+    job=OCR_JOB=&job1;
+
+    setvbuf(stdout, (char *) NULL, _IONBF, 0);	/* not buffered */
+
+    job_init(job); /* init cfg and db */
+    job->src.fname = filename;
+    /* load character data base (JS1002: now outside pgm2asc) */
+    if ( job->cfg.mode & 2 ) /* check for db-option flag */
+        load_db(job);
+    /* load_db uses readpnm() and would conflict with multi images */
+
+    job_init_image(job); /* single image */
+    mark_start(job);
+    read_picture(job);
+
+    pgm2asc(job);
+    mark_end(job);
+    line = getTextLine(&(job->res.linelist), 0);
+    job_free_image(job);
+    return line;
+}
+
+
 static VALUE image_recognize(VALUE self, VALUE arg) {
   char* filename = StringValuePtr(arg);
-  printf("Hello %s!\n", filename);
-  return rb_str_new2( "string" );
+  return rb_str_new2( gocr_recognize(filename) );
+}
+
+/*
+ * @brief define ruby class GOCR::Image and method recognize
+ *
+ */
+void Init_gocr() {
+  VALUE mGocr = rb_define_module("GOCR");
+  VALUE mImage = rb_define_class_under(mGocr, "Image", rb_cObject);
+  rb_define_singleton_method(mImage, "recognize", image_recognize, 1);
 }
 
 
@@ -367,12 +403,12 @@ static VALUE image_recognize(VALUE self, VALUE arg) {
 //  job_init(job); /* init cfg and db */
 //
 //  process_arguments(job, argn, argv);
-//  
+//
 //  /* load character data base (JS1002: now outside pgm2asc) */
 //  if ( job->cfg.mode & 2 ) /* check for db-option flag */
 //    load_db(job);
 //    /* load_db uses readpnm() and would conflict with multi images */
-//        
+//
 //  while (multipnm==1) { /* multi-image loop */
 //
 //    job_init_image(job); /* single image */
@@ -384,12 +420,12 @@ static VALUE image_recognize(VALUE self, VALUE arg) {
 //       this will be changed later => introduction of set_option()
 //       for better communication to the engine  */
 //    if (multipnm<0) break; /* read error */
-//  
+//
 //    /* call main loop */
 //    pgm2asc(job);
 //
 //    mark_end(job);
-//  
+//
 //    print_output(job);
 //
 //    job_free_image(job);
@@ -398,16 +434,3 @@ static VALUE image_recognize(VALUE self, VALUE arg) {
 //
 //  return ((multipnm<0)?multipnm:0); /* -1=255 on error, 0 ok */
 //}
-//
-
-/*
- * @brief define ruby class GOCR::Image and method recognize
- *
- */
-void Init_gocr() {
-  VALUE mGocr = rb_define_module("GOCR");
-  VALUE mImage = rb_define_class_under(mGocr, "Image", rb_cObject);
-  //VALUE mImage = rb_const_get(rb_cObject, rb_intern("Image"));
-  // define class method GOCR::Image.recognize("filename.extension")
-  rb_define_singleton_method(mImage, "recognize", image_recognize, 1);
-}

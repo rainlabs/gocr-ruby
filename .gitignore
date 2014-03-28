@@ -18,3 +18,5 @@ tmp
 *.gem
 *.so
 .rvmrc
+.idea/
+*.log
