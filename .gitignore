@@ -20,3 +20,5 @@ tmp
 .rvmrc
 .idea/
 *.log
+
+GOCR-Ruby.*

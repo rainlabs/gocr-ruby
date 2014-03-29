@@ -1,5 +1,5 @@
 require "gocr/version"
-require "gocr/image"
+require "gocr/engine"
 
 module GOCR
   # Your code goes here...

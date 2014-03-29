@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stddef.h>
 
 enum format {
-	ISO8859_1, TeX, HTML, XML, SGML, UTF8, ASCII
+    UTF8, ISO8859_1, TeX, HTML, XML, SGML, ASCII
 };
 typedef enum format FORMAT;
 

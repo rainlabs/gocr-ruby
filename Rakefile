@@ -9,7 +9,7 @@ require 'rubygems/package_task'
 #
 # See https://github.com/luislavena/rake-compiler for details
 
-Rake::ExtensionTask.new 'gocr-ruby' do |ext|
+Rake::ExtensionTask.new 'gocr' do |ext|
 
   # This causes the shared object to be placed in lib/my_malloc/my_malloc.so
   #
@@ -19,7 +19,7 @@ Rake::ExtensionTask.new 'gocr-ruby' do |ext|
   ext.lib_dir = 'lib/gocr'
 end
 
-s = Gem::Specification.new 'gocr-ruby', '0.0.1' do |s|
+s = Gem::Specification.new 'gocr', '0.0.1' do |s|
   s.summary = 'simple gocr wrapper'
   s.authors = %w[zyablitskiy@gmail.com]
 
@@ -40,7 +40,7 @@ Gem::PackageTask.new s do end
 # This isn't a good test, but does provide a sanity check
 
 task test: %w[compile] do
-  ruby '-Ilib', '-rgocr', '-e', 'p GOCR::Image.recognize("image.png")'
+  ruby '-Ilib', '-rgocr', '-e', 'p GOCR::Engine.new(numbers_only: false).text_for("image.png")'
 #  ruby '-Ilib', '-rgocr', '-e', 'p 3'
 end
 

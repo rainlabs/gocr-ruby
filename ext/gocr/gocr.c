@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ocr0.h"		/* only_numbers */
 #include "progress.h"
 #include "version.h"
-#include "ruby.h"
+#include <ruby.h>
 
 /*
 #ifndef RSTRING_PTR
@@ -322,9 +322,12 @@ static int read_picture(job_t *job) {
 }
 
 /* subject of change, we need more output for XML (ToDo) */
-void print_output(job_t *job) {
+char* print_output(job_t *job) {
   int linecounter = 0;
   const char *line;
+  char** lines;
+  char* output;
+  int i = 0, j, n = 0;
 
   assert(job);
         
@@ -332,61 +335,131 @@ void print_output(job_t *job) {
    simplify code 2010-09-26
 */
   linecounter = 0;
+  lines = (char**) malloc(job->res.lines.num);
   line = getTextLine(&(job->res.linelist), linecounter++);
   while (line) {
+    n += strlen(line) + 1;
+    lines[i] = (char*) malloc(strlen(line));
+    strcpy(lines[i++], line);
     /* notice: decode() is shiftet to getTextLine since 0.38 */
-    fputs(line, stdout);
     if (job->cfg.out_format==HTML) fputs("<br />",stdout);
     if (job->cfg.out_format!=XML)  fputc('\n', stdout);
     line = getTextLine(&(job->res.linelist), linecounter++);
   }
-  free_textlines(&(job->res.linelist));
+//  free_textlines(&(job->res.linelist));
+
+  output = (char*) malloc(n);
+  strcpy(output, lines[0]);
+  for(j = 1; j < i; j++) {
+      strcat(output, "\n");
+      strcat(output, lines[j]);
+  }
+
+  return output;
 }
 
 /* FIXME jb: remove JOB; renamed to OCR_JOB 2010-09-26 */
 job_t *OCR_JOB;
 
 
-char* gocr_recognize(char* filename) {
-    char* line;
-    int multipnm=1;
-    job_t job1, *job; /* fixme, dont want global variables for lib */
-    job=OCR_JOB=&job1;
+char* gocr_main(job_t* job) {
+  int multipnm=1;
+  char* output;
+  setvbuf(stdout, (char *) NULL, _IONBF, 0);	/* not buffered */
 
-    setvbuf(stdout, (char *) NULL, _IONBF, 0);	/* not buffered */
-
-    job_init(job); /* init cfg and db */
-    job->src.fname = filename;
-    /* load character data base (JS1002: now outside pgm2asc) */
-    if ( job->cfg.mode & 2 ) /* check for db-option flag */
-        load_db(job);
+  /* load character data base (JS1002: now outside pgm2asc) */
+  if ( job->cfg.mode & 2 ) /* check for db-option flag */
+    load_db(job);
     /* load_db uses readpnm() and would conflict with multi images */
 
-    job_init_image(job); /* single image */
-    mark_start(job);
-    read_picture(job);
+  while (multipnm==1) { /* multi-image loop */
 
+    job_init_image(job); /* single image */
+
+    mark_start(job);
+
+    multipnm = read_picture(job);
+    /* separation of main and rest for using as lib
+       this will be changed later => introduction of set_option()
+       for better communication to the engine  */
+    if (multipnm<0) break; /* read error */
+
+    /* call main loop */
     pgm2asc(job);
+
     mark_end(job);
-    line = getTextLine(&(job->res.linelist), 0);
+
+    output = print_output(job);
+
     job_free_image(job);
-    return line;
+
+  }
+
+//  return ((multipnm<0)?multipnm:0); /* -1=255 on error, 0 ok */
+    return output;
 }
 
 
 static VALUE image_recognize(VALUE self, VALUE arg) {
-  char* filename = StringValuePtr(arg);
-  return rb_str_new2( gocr_recognize(filename) );
+    VALUE tmp;
+
+    job_t job1, *job; /* fixme, dont want global variables for lib */
+    job=OCR_JOB=&job1;
+    job_init(job);
+    
+    job->src.fname = StringValuePtr(arg);
+    tmp = rb_iv_get(self, "@database");
+    if (tmp != Qnil) {
+        job->cfg.db_path = StringValuePtr(tmp);
+    }
+    tmp = rb_iv_get(self, "@format");
+    if (tmp != Qnil) {
+        job->cfg.out_format = NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@whitelist");
+    if (tmp != Qnil) {
+        if (strlen(StringValuePtr(tmp)) > 0)
+            job->cfg.cfilter = StringValuePtr(tmp);
+    }
+    tmp = rb_iv_get(self, "@dust_size");
+    if (tmp != Qnil) {
+        job->cfg.dust_size = NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@gray_level");
+    if (tmp != Qnil) {
+        job->cfg.cs = NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@space_width");
+    if (tmp != Qnil) {
+        job->cfg.spc = NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@mode");
+    if (tmp != Qnil) {
+        job->cfg.mode |= NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@numbers_only");
+    if (tmp == Qtrue) {
+        job->cfg.only_numbers = 1;
+    }
+    tmp = rb_iv_get(self, "@certainty");
+    if (tmp != Qnil) {
+        job->cfg.certainty = NUM2INT(tmp);
+    }
+    tmp = rb_iv_get(self, "@unrecognize_char");
+    if (tmp != Qnil) {
+        job->cfg.unrec_marker = StringValuePtr(tmp)[0];
+    }
+    return rb_str_new2( gocr_main(job) );
 }
 
 /*
- * @brief define ruby class GOCR::Image and method recognize
+ * @brief define ruby class GOCR::Engine and method text_for
  *
  */
 void Init_gocr() {
   VALUE mGocr = rb_define_module("GOCR");
-  VALUE mImage = rb_define_class_under(mGocr, "Image", rb_cObject);
-  rb_define_singleton_method(mImage, "recognize", image_recognize, 1);
+  VALUE mImage = rb_define_class_under(mGocr, "Engine", rb_cObject);
+  rb_define_method(mImage, "text_for", image_recognize, 1);
 }
 
 
